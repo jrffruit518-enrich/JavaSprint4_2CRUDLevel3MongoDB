@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
@@ -51,8 +50,8 @@ public class GlobalExceptionHandler {
     }
 
     // 2. Handle 404 Not Found (Custom Exception)
-    @ExceptionHandler(OrderNotFoundException.class)
-    public ResponseEntity<ApiErrorResponse> handleNotFound(OrderNotFoundException ex) {
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleNotFound(ResourceNotFoundException ex) {
         var error = new ApiErrorResponse(
                 HttpStatus.NOT_FOUND.value(),
                 ex.getMessage(),

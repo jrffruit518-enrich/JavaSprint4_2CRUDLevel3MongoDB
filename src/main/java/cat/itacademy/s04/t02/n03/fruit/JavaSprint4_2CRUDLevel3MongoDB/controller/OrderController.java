@@ -8,6 +8,8 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @AllArgsConstructor
 @RequestMapping("/orders")
@@ -21,6 +23,11 @@ public class OrderController {
             ) {
         return orderService.createOrder(request);
 
+    }
+
+    @GetMapping
+    public List<OrderResponse> findAllOrders() {
+        return orderService.findAllOrders();
     }
 
 

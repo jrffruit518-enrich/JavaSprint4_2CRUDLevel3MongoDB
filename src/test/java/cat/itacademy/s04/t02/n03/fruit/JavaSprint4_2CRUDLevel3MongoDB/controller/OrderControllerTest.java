@@ -102,4 +102,42 @@ public class OrderControllerTest {
                         .content(objectMapper.writeValueAsString(invalidDateRequest)))
                 .andExpect(status().isBadRequest());
     }
+    // 1. Success case: Should return 200 OK and a list of orders in JSON format
+    @Test
+    void findAllOrders_shouldReturnOkAndList() throws Exception {
+        // Arrange: Prepare a list with one order response
+        OrderResponse response = new OrderResponse(
+                "123",
+                "Rong",
+                List.of(new Fruit("banana", 5)),
+                LocalDate.now().plusDays(2)
+        );
+        List<OrderResponse> allOrders = List.of(response);
+
+        // Stubbing: When service is called, return the list
+        when(orderService.findAllOrders()).thenReturn(allOrders);
+
+        // Act & Assert
+        mockMvc.perform(get("/orders")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()) // Acceptance Criteria: HTTP 200 OK
+                .andExpect(jsonPath("$.size()").value(1)) // Verify array size
+                .andExpect(jsonPath("$[0].id").value("123"))
+                .andExpect(jsonPath("$[0].clientName").value("Rong"))
+                .andExpect(jsonPath("$[0].fruitList[0].name").value("banana"));
+    }
+
+    // 2. Empty case: Should return 200 OK and an empty array []
+    @Test
+    void findAllOrders_whenEmpty_shouldReturnEmptyArray() throws Exception {
+        // Arrange: Stubbing service to return an empty list
+        when(orderService.findAllOrders()).thenReturn(List.of());
+
+        // Act & Assert
+        mockMvc.perform(get("/orders")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()) // Acceptance Criteria: HTTP 200 OK
+                .andExpect(jsonPath("$").isArray()) // Verify it is an array
+                .andExpect(jsonPath("$.size()").value(0)); // Acceptance Criteria: empty array
+    }
 }
