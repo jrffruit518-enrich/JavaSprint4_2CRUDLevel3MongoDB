@@ -6,6 +6,7 @@ import cat.itacademy.s04.t02.n03.fruit.JavaSprint4_2CRUDLevel3MongoDB.entities.O
 import cat.itacademy.s04.t02.n03.fruit.JavaSprint4_2CRUDLevel3MongoDB.repository.OrderRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.List;
 @AllArgsConstructor
 public class OrderServiceImp implements OrderService{
     private final OrderRepository repository;
+    @Transactional
     @Override
     public OrderResponse createOrder(OrderRequest request) {
         if (request.deliveryDate().isBefore(LocalDate.now().plusDays(1))) {
@@ -33,7 +35,8 @@ public class OrderServiceImp implements OrderService{
 
     @Override
     public List<OrderResponse> findAllOrders() {
-        return List.of();
+       return repository.findAll().stream().map(this::getOrderResponse)
+                .toList();
     }
 
     @Override
