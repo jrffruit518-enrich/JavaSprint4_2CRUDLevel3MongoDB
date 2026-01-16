@@ -4,6 +4,7 @@ import cat.itacademy.s04.t02.n03.fruit.JavaSprint4_2CRUDLevel3MongoDB.DTO.OrderR
 import cat.itacademy.s04.t02.n03.fruit.JavaSprint4_2CRUDLevel3MongoDB.DTO.OrderResponse;
 import cat.itacademy.s04.t02.n03.fruit.JavaSprint4_2CRUDLevel3MongoDB.entities.Fruit;
 import cat.itacademy.s04.t02.n03.fruit.JavaSprint4_2CRUDLevel3MongoDB.entities.Order;
+import cat.itacademy.s04.t02.n03.fruit.JavaSprint4_2CRUDLevel3MongoDB.exception.ResourceNotFoundException;
 import cat.itacademy.s04.t02.n03.fruit.JavaSprint4_2CRUDLevel3MongoDB.repository.OrderRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -106,6 +108,46 @@ public class OrderServiceTest {
         assertThat(result).isEmpty();
 
         verify(repository, times(1)).findAll();
+    }
+
+    @Test
+    void findOrderById_whenIdExists_shouldReturnOrder() {
+        Order order = Order
+                .builder()
+                .id("1")
+                .clientName("Rong")
+                .fruitList(List.of(new Fruit("apple",10)))
+                .deliveryDate(LocalDate.now().plusDays(1))
+                .build();
+
+        when(repository.findById("1")).thenReturn(Optional.of(order));
+
+        OrderResponse response = orderService.findOrderById("1");
+
+        assertNotNull(response);
+        assertEquals("Rong",response.clientName());
+        assertEquals("apple",response.fruitList().get(0).name());
+        assertEquals(10,response.fruitList().get(0).number());
+        assertEquals(LocalDate.now().plusDays(1),response.deliveryDate());
+
+    }
+    @Test
+    void findOrderById_whenIdDoesNotExist_shouldThrowResourceNotFoundException() {
+        // Arrange: Mock the repository to return an empty Optional
+        String id = "non-existent-id";
+        // Using Optional.empty() to simulate that no document was found in MongoDB
+        when(repository.findById(id)).thenReturn(Optional.empty());
+
+        // Act & Assert: Verify that our custom ResourceNotFoundException is thrown
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
+            orderService.findOrderById(id);
+        });
+
+        // Verify the exception message contains the missing ID for better debugging
+        assertTrue(exception.getMessage().contains(id));
+
+        // Ensure findById was called once
+        verify(repository, times(1)).findById(id);
     }
 
 
