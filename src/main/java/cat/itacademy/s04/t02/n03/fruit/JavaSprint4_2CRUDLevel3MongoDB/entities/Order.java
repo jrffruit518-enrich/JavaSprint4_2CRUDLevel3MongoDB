@@ -14,8 +14,7 @@ import java.util.List;
 
 
 @Document(collection = "orders")
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
