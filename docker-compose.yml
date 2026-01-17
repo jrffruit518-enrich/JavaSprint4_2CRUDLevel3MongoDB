@@ -1,0 +1,25 @@
+services:
+  # 别人不需要装 MongoDB，Docker 会自动帮他下载并启动一个干净的
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb_container
+    # 即使别人本地占用了 27017，我们可以把容器端口映射到不冲突的 27018
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  fruit-api:
+    build: .
+    container_name: fruit_api_container
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongodb
+    environment:
+      # 重点：这里连接的是容器名，而不是宿主机
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/order_system
+    restart: on-failure
+
+volumes:
+  mongo_data: # 自动在 Docker 内部管理持久化，别人不需要关心路径
