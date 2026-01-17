@@ -18,12 +18,9 @@ import java.util.List;
 @AllArgsConstructor
 public class OrderServiceImp implements OrderService{
     private final OrderRepository repository;
-    @Transactional
     @Override
     public OrderResponse createOrder(OrderRequest request) {
-        if (request.deliveryDate().isBefore(LocalDate.now().plusDays(1))) {
-            throw new IllegalArgumentException("Delivery date must be tomorrow or later");
-        }
+        validateDate(request.deliveryDate());
         Order order = Order.builder()
                 .clientName(request.clientName())
                 .fruitList(request.fruitList())
@@ -50,13 +47,31 @@ public class OrderServiceImp implements OrderService{
 
     @Override
     public OrderResponse updateOrderById(String id, OrderRequest request) {
-        return null;
+        // 1. Check ID exists
+        Order existedOrder = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(id));
+
+        // 2. Validate new delivery date (Consistent with createOrder logic)
+       validateDate(request.deliveryDate());
+
+        // 3. Map new data to the existed entity
+        existedOrder.setClientName(request.clientName());
+        existedOrder.setFruitList(request.fruitList());
+        existedOrder.setDeliveryDate(request.deliveryDate());
+
+        // 4. Save and return
+        Order updatedOrder = repository.save(existedOrder);
+        return getOrderResponse(updatedOrder);
     }
 
     @Override
     public void deleteOrderById(String id) {
-
+        if (!repository.existsById(id)) {
+            throw new ResourceNotFoundException(id);
+        }
+        repository.deleteById(id);
     }
+
     private OrderResponse getOrderResponse(Order order) {
         return new OrderResponse(
                 order.getId(),
@@ -64,5 +79,12 @@ public class OrderServiceImp implements OrderService{
                 order.getFruitList(),
                 order.getDeliveryDate()
         );
+    }
+
+    private void validateDate(LocalDate date) {
+        // Common validation logic
+        if (date.isBefore(LocalDate.now().plusDays(1))) {
+            throw new IllegalArgumentException("Delivery date must be tomorrow or later");
+        }
     }
 }
