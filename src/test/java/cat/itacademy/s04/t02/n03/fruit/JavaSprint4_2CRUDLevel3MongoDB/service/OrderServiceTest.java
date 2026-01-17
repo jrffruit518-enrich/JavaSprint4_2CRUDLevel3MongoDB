@@ -35,16 +35,16 @@ public class OrderServiceTest {
     @DisplayName("Success Path: Mapping and Saving")
     void createOrder_ShouldMapAndSaveCorrectly() {
 
-        LocalDate validDate = LocalDate.now().plusDays(1);
-        OrderRequest request = new OrderRequest("Rong", List.of(new Fruit("Apple", 1)), validDate);
+        LocalDate deliveryDate = LocalDate.of(2026, 1, 20);
+        OrderRequest request = new OrderRequest("Rong", List.of(new Fruit("Apple", 1)), deliveryDate);
 
-        Order savedOrder = new Order("ID123", "Rong", request.fruitList(), validDate);
+        Order savedOrder = new Order("ID123", "Rong", request.fruitList(), deliveryDate);
         when(repository.save(any())).thenReturn(savedOrder);
 
         OrderResponse response = orderService.createOrder(request);
 
         assertNotNull(response);
-        assertEquals(validDate, response.deliveryDate());
+        assertEquals(deliveryDate, response.deliveryDate());
         verify(repository, times(1)).save(any(Order.class));
     }
     @Test
@@ -112,12 +112,13 @@ public class OrderServiceTest {
 
     @Test
     void findOrderById_whenIdExists_shouldReturnOrder() {
+        LocalDate deliveryDate = LocalDate.of(2026, 1, 20);
         Order order = Order
                 .builder()
                 .id("1")
                 .clientName("Rong")
                 .fruitList(List.of(new Fruit("apple",10)))
-                .deliveryDate(LocalDate.now().plusDays(1))
+                .deliveryDate(deliveryDate)
                 .build();
 
         when(repository.findById("1")).thenReturn(Optional.of(order));
@@ -128,7 +129,7 @@ public class OrderServiceTest {
         assertEquals("Rong",response.clientName());
         assertEquals("apple",response.fruitList().get(0).name());
         assertEquals(10,response.fruitList().get(0).number());
-        assertEquals(LocalDate.now().plusDays(1),response.deliveryDate());
+        assertEquals(deliveryDate,response.deliveryDate());
 
     }
     @Test
@@ -149,6 +150,99 @@ public class OrderServiceTest {
         // Ensure findById was called once
         verify(repository, times(1)).findById(id);
     }
+
+    @Test
+    void updateOrderById_whenIdExists_shouldUpdateOrder() {
+        // 1. Arrange: Use fixed date to ensure stability
+        String orderId = "1";
+        LocalDate deliveryDate = LocalDate.of(2026, 1, 20);
+
+        Order existedOrder = Order.builder()
+                .id(orderId)
+                .clientName("Rong")
+                .fruitList(List.of(new Fruit("apple", 10)))
+                .deliveryDate(deliveryDate)
+                .build();
+
+        OrderRequest updateRequest = new OrderRequest(
+                "Rong",
+                List.of(new Fruit("Peach", 12)),
+                deliveryDate
+        );
+
+        // Corrected: Match the actual ID "1" instead of empty string
+        when(repository.findById(orderId)).thenReturn(Optional.of(existedOrder));
+
+        // Mock save to return the object being saved
+        when(repository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // 2. Act
+        OrderResponse response = orderService.updateOrderById(orderId, updateRequest);
+
+        // 3. Assert
+        assertNotNull(response);
+        assertEquals(orderId, response.id()); // Ensure ID remains the same
+        assertEquals("Peach", response.fruitList().get(0).name());
+        assertEquals(12, response.fruitList().get(0).number());
+
+        // Verify interactions
+        verify(repository).findById(orderId);
+        verify(repository).save(any(Order.class));
+    }
+
+    @Test
+    void updateOrderById_whenIdDoesNotExist_shouldThrowResourceNotFoundException() {
+        // 1. Arrange
+        String nonExistentId = "999";
+        LocalDate deliveryDate = LocalDate.of(2026, 1, 20);
+        OrderRequest updateRequest = new OrderRequest(
+                "Rong",
+                List.of(new Fruit("Peach", 12)),
+                deliveryDate
+        );
+
+        // Mock: When findById is called with "999", return an empty Optional
+        when(repository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+        // 2. Act & 3. Assert
+        // Verify that the custom exception is thrown
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
+            orderService.updateOrderById(nonExistentId, updateRequest);
+        });
+
+        // Verify the exception message is correct
+        assertEquals("Order with ID [999] not found", exception.getMessage());
+
+        // Verify that save() was NEVER called because the ID was invalid
+        verify(repository, never()).save(any(Order.class));
+    }
+
+    @Test
+    void delete_WhenIdExists_ShouldInvokeDelete() {
+        String id = "1";
+        when(repository.existsById(id)).thenReturn(true);
+        orderService.deleteOrderById(id);
+        verify(repository,times(1)).deleteById(id);
+
+    }
+    @Test
+    void deleteOrderById_whenIdDoesNotExist_shouldThrowResourceNotFoundException() {
+        // Arrange
+        String id = "999";
+        when(repository.existsById(id)).thenReturn(false);
+
+        // Act & Assert
+        assertThrows(ResourceNotFoundException.class, () -> {
+            orderService.deleteOrderById(id);
+        });
+
+        // Verify: Ensure deleteById is NEVER called if the ID doesn't exist
+        verify(repository, never()).deleteById(anyString());
+    }
+
+
+
+
 
 
 
